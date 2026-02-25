@@ -104,7 +104,7 @@ export default function GiftPage() {
       </h1>
 
       <div
-        className={`relative overflow-hidden${
+        className={`relative overflow-hidden ${
           showAnimation ? 'animate-unroll' : ''
         }`}
         style={{

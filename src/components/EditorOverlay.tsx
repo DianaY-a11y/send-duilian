@@ -44,9 +44,9 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
   const [toastMessage, setToastMessage] = useState('')
   const [showToast, setShowToast] = useState(false)
   const [isAnimating, setIsAnimating] = useState(true)
+  const [panelOpen, setPanelOpen] = useState(false)
 
   const canvasRef = useRef<BrushCanvasRef>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimating(false), 500)
@@ -209,20 +209,18 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
 
   return (
     <div
-      className={`fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 transition-opacity duration-300 ${
+      className={`editor-overlay-root fixed inset-0 z-50 bg-black/80 flex flex-col items-center p-3 pb-8 overflow-y-auto transition-opacity duration-300 md:flex-row md:justify-center md:overflow-visible ${
         isAnimating ? 'opacity-0' : 'opacity-100'
       }`}
     >
       <div
-        ref={containerRef}
-        className={`relative flex flex-col md:flex-row gap-4 max-w-full max-h-full transition-transform duration-500 items-center justify-center ${
+        className={`relative flex flex-col md:flex-row gap-4 w-full max-w-full min-h-0 transition-transform duration-500 items-center justify-center md:max-h-full ${
           isAnimating ? 'scale-75' : 'scale-100'
         }`}
       >
-        <div className="relative flex-shrink-0 flex items-center justify-center">
+        <div className="editor-draw-area relative flex-shrink-0 flex items-center justify-center">
           <div
-            className="relative overflow-hidden max-h-[95vh] aspect-[1/2]"
-            style={{ width: 'min(90vw, 47.5vh)' }}
+            className="relative overflow-hidden aspect-[1/2] w-[min(90vw,45vh)] max-h-[90vh] md:w-[min(90vw,47.5vh)] md:max-h-[95vh]"
           >
             <img
               src={template.image}
@@ -251,7 +249,23 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
           </div>
         </div>
 
-        <div className="flex flex-row md:flex-col gap-3 bg-white p-4 border-2 border-red-700 self-center">
+        {/* Mobile: toggle to open tools panel */}
+        <button
+          type="button"
+          onClick={() => setPanelOpen((o) => !o)}
+          className="md:hidden flex-shrink-0 btn-editor px-4 py-3 text-sm"
+          aria-expanded={panelOpen}
+          aria-label={panelOpen ? 'Close tools' : 'Open tools'}
+        >
+          {panelOpen ? 'Close tools' : 'Tools'}
+        </button>
+
+        {/* Panel: vertical layout when open (mobile) or always visible (desktop); vertical stack like laptop */}
+        <div
+          className={`flex flex-shrink-0 flex-col gap-3 bg-white p-4 border-2 border-red-700 self-center mt-2 md:mt-0 ${
+            panelOpen ? 'flex' : 'hidden md:flex'
+          }`}
+        >
           <button
             onClick={onClose}
             className="btn-editor px-4 py-2 text-sm"
@@ -259,8 +273,8 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
             Cancel
           </button>
 
-          <div className="flex flex-row md:flex-col gap-2">
-            <span className="text-red-700 text-xs font-bold hidden md:block">Ink</span>
+          <div className="flex flex-col gap-2">
+            <span className="text-red-700 text-xs font-bold">Ink</span>
             <div className="flex gap-2">
               {INK_COLORS.map((ink) => (
                 <button
@@ -276,8 +290,8 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
             </div>
           </div>
 
-          <div className="flex flex-row md:flex-col gap-2">
-            <span className="text-red-700 text-xs font-bold hidden md:block">Brush</span>
+          <div className="flex flex-col gap-2">
+            <span className="text-red-700 text-xs font-bold">Brush</span>
             <div className="flex gap-2">
               {BRUSH_SIZES.map((brush) => (
                 <button

@@ -34,7 +34,6 @@ const BrushCanvas = forwardRef<BrushCanvasRef, BrushCanvasProps>(
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const isDrawing = useRef(false)
     const currentStroke = useRef<Stroke | null>(null)
-    const lastPoint = useRef<Point | null>(null)
 
     useImperativeHandle(ref, () => ({
       getCanvas: () => canvasRef.current,
@@ -63,6 +62,19 @@ const BrushCanvas = forwardRef<BrushCanvasRef, BrushCanvasProps>(
     useEffect(() => {
       redrawStrokes()
     }, [redrawStrokes])
+
+    // Non-passive touch listeners so preventDefault works (stops blue selection on iOS)
+    useEffect(() => {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const prevent = (e: TouchEvent) => e.preventDefault()
+      canvas.addEventListener('touchstart', prevent, { passive: false })
+      canvas.addEventListener('touchmove', prevent, { passive: false })
+      return () => {
+        canvas.removeEventListener('touchstart', prevent)
+        canvas.removeEventListener('touchmove', prevent)
+      }
+    }, [])
 
     const drawStroke = (ctx: CanvasRenderingContext2D, stroke: Stroke) => {
       if (stroke.points.length < 2) return
@@ -130,7 +142,6 @@ const BrushCanvas = forwardRef<BrushCanvasRef, BrushCanvasProps>(
         color,
         baseWidth: brushSize,
       }
-      lastPoint.current = point
       canvasRef.current?.setPointerCapture(e.pointerId)
     }
 
@@ -155,7 +166,6 @@ const BrushCanvas = forwardRef<BrushCanvasRef, BrushCanvasProps>(
         drawStroke(ctx, tempStroke)
       }
 
-      lastPoint.current = point
     }
 
     const handlePointerUp = (e: React.PointerEvent) => {
@@ -170,7 +180,6 @@ const BrushCanvas = forwardRef<BrushCanvasRef, BrushCanvasProps>(
       }
 
       currentStroke.current = null
-      lastPoint.current = null
     }
 
     const handlePointerLeave = (e: React.PointerEvent) => {
@@ -189,7 +198,8 @@ const BrushCanvas = forwardRef<BrushCanvasRef, BrushCanvasProps>(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
-        style={{ cursor: 'crosshair' }}
+        style={{ cursor: 'crosshair', touchAction: 'none' }}
+        tabIndex={-1}
       />
     )
   }

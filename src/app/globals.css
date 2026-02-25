@@ -53,27 +53,49 @@
   50% { transform: rotate(2deg) scale(1.05); }
 }
 
-/* Custom scrollbar */
+/* Scrollbar - neutral default style */
 ::-webkit-scrollbar {
   width: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #991B1B;
+  background: #f1f5f9;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #FCD34D;
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
-/* Touch action for drawing canvas */
-.drawing-canvas {
-  touch-action: none;
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Touch/pen drawing: no selection, no tap highlight, no callout (fixes blue box on iOS) */
+.drawing-canvas,
+.drawing-canvas *,
+.editor-draw-area,
+.editor-draw-area * {
+  -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-user-drag: none;
+}
+
+.drawing-canvas {
+  touch-action: none;
+}
+
+/* Whole editor overlay: prevent scroll/zoom and selection when drawing */
+.editor-overlay-root {
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.editor-overlay-root .editor-draw-area {
+  touch-action: none;
 }
 
 /* Editor panel buttons (red outline on white) */
