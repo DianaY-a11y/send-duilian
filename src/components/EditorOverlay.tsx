@@ -133,6 +133,9 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     exportCanvas.width = exportW
     exportCanvas.height = exportH
     const ctx = exportCanvas.getContext('2d')!
+    // Ensure a white background for exported images (JPEG doesn't support transparency)
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, exportW, exportH)
     ctx.drawImage(bgImage, 0, 0, exportW, exportH)
     const wa = template.writingArea
     const waX = wa.x * exportW

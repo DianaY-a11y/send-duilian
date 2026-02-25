@@ -13,7 +13,7 @@ export default function TemplateGrid({ onSelect }: TemplateGridProps) {
         <button
           key={template.id}
           onClick={() => onSelect(template)}
-          className="template-card group flex justify-center w-full bg-transparent border-0 p-0 shadow-none"
+          className="template-card group flex justify-center w-full bg-transparent border-0 p-0 shadow-none focus:outline-none focus:ring-0"
         >
           <div className="relative w-[160px] h-[320px] min-w-[160px] min-h-[320px] overflow-hidden flex items-center justify-center bg-transparent">
             <img

@@ -22,6 +22,39 @@ export default function Home() {
             Choose a template 👆
           </p>
         </div>
+
+        <div className="mt-6 text-center">
+          <p className="text-white/90 text-sm font-medium mb-3">See some couplets others have written ~</p>
+          <div className="flex flex-wrap justify-center gap-3">
+            <a
+              href="/g/740GMvReMo1u"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl overflow-hidden ring-2 ring-transparent focus:outline-none"
+              aria-label="Open example 1 in a new tab"
+            >
+              <img
+                src="/templates/1.png"
+                alt="Example 1 preview"
+                className="w-36 h-36 object-cover block"
+              />
+            </a>
+
+            <a
+              href="/g/vVHE7IKbyoVG"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-xl overflow-hidden ring-2 ring-transparent focus:outline-none"
+              aria-label="Open example 2 in a new tab"
+            >
+              <img
+                src="/templates/2.png"
+                alt="Example 2 preview"
+                className="w-36 h-36 object-cover block"
+              />
+            </a>
+          </div>
+        </div>
       </div>
 
       {selectedTemplate && (
