@@ -13,9 +13,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    let body: { templateId?: string; imageBase64?: string }
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid request body' },
+        { status: 400 }
+      )
+    }
     const { templateId, imageBase64 } = body
 
+    if (!templateId || typeof templateId !== 'string') {
+      return NextResponse.json(
+        { error: 'Invalid template' },
+        { status: 400 }
+      )
+    }
     const template = getTemplateById(templateId)
     if (!template) {
       return NextResponse.json(
@@ -24,7 +38,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!imageBase64 || !imageBase64.startsWith('data:image/')) {
+    const hasValidImage =
+      typeof imageBase64 === 'string' &&
+      imageBase64.length > 100 &&
+      (imageBase64.startsWith('data:image/png;base64,') || imageBase64.startsWith('data:image/webp;base64,') || imageBase64.startsWith('data:image/jpeg;base64,'))
+    if (!hasValidImage) {
       return NextResponse.json(
         { error: 'Invalid image data' },
         { status: 400 }

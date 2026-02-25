@@ -66,7 +66,7 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
 
   const renderToExportCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
     const bgImage = new Image()
-    bgImage.crossOrigin = 'anonymous'
+    // Don't set crossOrigin for same-origin templates; Safari/iOS can taint the canvas otherwise
     await new Promise<void>((resolve, reject) => {
       bgImage.onload = () => resolve()
       bgImage.onerror = reject
@@ -153,14 +153,20 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     setIsSaving(true)
     try {
       const exportCanvas = await renderToExportCanvas()
+      // Use PNG for upload: best Safari/iOS support; WebP can fail or taint on iPad
       let imageData: string
       try {
-        imageData = exportCanvas.toDataURL('image/webp', 0.9)
-        if (!imageData.startsWith('data:image/webp')) {
-          imageData = exportCanvas.toDataURL('image/png')
-        }
-      } catch {
         imageData = exportCanvas.toDataURL('image/png')
+      } catch (e) {
+        console.error('toDataURL failed', e)
+        setToastMessage('Could not export image')
+        setShowToast(true)
+        return
+      }
+      if (!imageData || !imageData.startsWith('data:image/')) {
+        setToastMessage('Could not export image')
+        setShowToast(true)
+        return
       }
 
       const response = await fetch('/api/gifts', {
