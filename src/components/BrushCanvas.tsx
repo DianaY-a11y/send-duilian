@@ -198,7 +198,7 @@ const BrushCanvas = forwardRef<BrushCanvasRef, BrushCanvasProps>(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
-        style={{ cursor: 'crosshair', touchAction: 'none' }}
+        style={{ cursor: 'url(/components/brush-cursor.png) 12 28, crosshair', touchAction: 'none' }}
         tabIndex={-1}
       />
     )
