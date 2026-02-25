@@ -46,8 +46,25 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
   const [toastDuration, setToastDuration] = useState(3000)
   const [isAnimating, setIsAnimating] = useState(true)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [canvasDimensions, setCanvasDimensions] = useState({ width: 600, height: 1200 })
 
   const canvasRef = useRef<BrushCanvasRef>(null)
+
+  useEffect(() => {
+    const img = new Image()
+    img.onload = () => {
+      const w = img.naturalWidth || template.exportWidth
+      const h = img.naturalHeight || template.exportHeight
+      if (w > 0 && h > 0) {
+        const base = 600
+        setCanvasDimensions({
+          width: base,
+          height: Math.round(base * (h / w)),
+        })
+      }
+    }
+    img.src = template.image
+  }, [template.image, template.exportWidth, template.exportHeight])
 
   const copyToClipboard = useCallback((text: string): boolean => {
     try {
@@ -260,9 +277,6 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     }
   }
 
-  const canvasWidth = 600
-  const canvasHeight = 1200
-
   return (
     <div
       className={`editor-overlay-root fixed inset-0 z-50 bg-black/80 flex flex-col items-center p-3 pb-8 overflow-y-auto transition-opacity duration-300 md:flex-row md:justify-center md:overflow-visible ${
@@ -276,7 +290,10 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
       >
         <div className="editor-draw-area relative flex-shrink-0 flex items-center justify-center">
           <div
-            className="relative overflow-hidden aspect-[1/2] w-[min(90vw,45vh)] max-h-[90vh] md:w-[min(90vw,47.5vh)] md:max-h-[95vh]"
+            className="relative overflow-hidden w-[min(90vw,45vh)] max-h-[90vh] md:w-[min(90vw,47.5vh)] md:max-h-[95vh]"
+            style={{
+              aspectRatio: `${canvasDimensions.width} / ${canvasDimensions.height}`,
+            }}
           >
             <img
               src={template.image}
@@ -294,8 +311,8 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
             >
               <BrushCanvas
                 ref={canvasRef}
-                width={canvasWidth}
-                height={canvasHeight}
+                width={canvasDimensions.width}
+                height={canvasDimensions.height}
                 color={inkColor}
                 brushSize={brushSize}
                 strokes={strokes}
