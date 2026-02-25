@@ -43,9 +43,9 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
   const [isSaving, setIsSaving] = useState(false)
   const [toastMessage, setToastMessage] = useState('')
   const [showToast, setShowToast] = useState(false)
+  const [toastDuration, setToastDuration] = useState(3000)
   const [isAnimating, setIsAnimating] = useState(true)
   const [panelOpen, setPanelOpen] = useState(false)
-  const [shareUrlPendingCopy, setShareUrlPendingCopy] = useState<string | null>(null)
 
   const canvasRef = useRef<BrushCanvasRef>(null)
 
@@ -92,15 +92,14 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     canvasRef.current?.clear()
   }
 
-  const renderToExportCanvas = useCallback(async (options?: { maxDimension?: number }): Promise<HTMLCanvasElement> => {
+  const renderToExportCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
     const bgImage = new Image()
     await new Promise<void>((resolve, reject) => {
       bgImage.onload = () => resolve()
       bgImage.onerror = reject
       bgImage.src = template.image
     })
-    // Cap size for Safari/iOS and for upload payload limits (smaller = smaller request body)
-    const MAX_EXPORT_PX = options?.maxDimension ?? 1200
+    const MAX_EXPORT_PX = 1200
     let exportW = bgImage.naturalWidth || template.exportWidth
     let exportH = bgImage.naturalHeight || template.exportHeight
     if (exportW <= 0 || exportH <= 0) {
@@ -178,10 +177,12 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
       link.href = dataUrl
       link.download = `couplet-luck-${Date.now()}.png`
       link.click()
+      setToastDuration(3000)
       setToastMessage('Saved! 🍀')
       setShowToast(true)
     } catch (e) {
       console.error(e)
+      setToastDuration(3000)
       setToastMessage('Could not save image')
       setShowToast(true)
     }
@@ -191,13 +192,13 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     if (isSaving) return
     setIsSaving(true)
     try {
-      // Smaller export for upload to stay under body size limits (e.g. Vercel 4.5MB)
-      const exportCanvas = await renderToExportCanvas({ maxDimension: 800 })
+      // Same resolution as download (1200px cap) for high-quality send
+      const exportCanvas = await renderToExportCanvas()
+      const JPEG_QUALITY = 0.94
       let imageData: string
       try {
-        // Prefer JPEG for upload (much smaller than PNG); fallback to PNG
         try {
-          imageData = exportCanvas.toDataURL('image/jpeg', 0.88)
+          imageData = exportCanvas.toDataURL('image/jpeg', JPEG_QUALITY)
           if (!imageData.startsWith('data:image/jpeg')) imageData = exportCanvas.toDataURL('image/png')
         } catch {
           imageData = exportCanvas.toDataURL('image/png')
@@ -206,19 +207,21 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
         console.error('toDataURL failed', e)
         try {
           const small = document.createElement('canvas')
-          small.width = Math.min(600, exportCanvas.width)
-          small.height = Math.min(1200, exportCanvas.height)
+          small.width = Math.min(800, exportCanvas.width)
+          small.height = Math.min(1600, exportCanvas.height)
           const sctx = small.getContext('2d')!
           sctx.drawImage(exportCanvas, 0, 0, small.width, small.height)
-          imageData = small.toDataURL('image/jpeg', 0.88) || small.toDataURL('image/png')
+          imageData = small.toDataURL('image/jpeg', JPEG_QUALITY) || small.toDataURL('image/png')
         } catch (e2) {
           console.error('toDataURL fallback failed', e2)
+          setToastDuration(3000)
           setToastMessage('Could not export image')
           setShowToast(true)
           return
         }
       }
       if (!imageData || !imageData.startsWith('data:image/')) {
+        setToastDuration(3000)
         setToastMessage('Could not export image')
         setShowToast(true)
         return
@@ -242,22 +245,14 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
       const { slug } = await response.json()
       const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/g/${slug}`
 
-      const copied = copyToClipboard(shareUrl)
-      // iPadOS 13+ often reports Mac user agent; detect iPad by touch + platform
-      const isIOS =
-        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-      if (copied && !isIOS) {
-        setToastMessage('Link copied!')
-        setShowToast(true)
-      } else {
-        setShareUrlPendingCopy(shareUrl)
-        setToastMessage('Tap Copy link below')
-        setShowToast(true)
-      }
+      copyToClipboard(shareUrl)
+      setToastMessage(`Copied link: ${shareUrl}`)
+      setToastDuration(8000)
+      setShowToast(true)
     } catch (error) {
       console.error('Save error:', error)
       const message = error instanceof Error ? error.message : 'Something went wrong'
+      setToastDuration(3000)
       setToastMessage(message)
       setShowToast(true)
     } finally {
@@ -409,45 +404,8 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
         message={toastMessage}
         isVisible={showToast}
         onClose={() => setShowToast(false)}
+        duration={toastDuration}
       />
-
-      {shareUrlPendingCopy && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] max-w-[calc(100vw-2rem)] w-full max-w-md">
-          <div className="bg-white border-2 border-red-700 rounded-lg p-3 shadow-lg flex flex-col gap-2">
-            <label className="text-red-700 text-xs font-bold">Share link</label>
-            <input
-              type="text"
-              readOnly
-              value={shareUrlPendingCopy}
-              className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-800 bg-gray-50"
-              onClick={(e) => (e.target as HTMLInputElement).select()}
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                className="btn-editor flex-1 py-2 text-sm"
-                onClick={() => {
-                  const ok = copyToClipboard(shareUrlPendingCopy)
-                  if (ok) {
-                    setToastMessage('Copied!')
-                    setShowToast(true)
-                    setTimeout(() => setShareUrlPendingCopy(null), 1500)
-                  }
-                }}
-              >
-                Copy link
-              </button>
-              <button
-                type="button"
-                className="btn-editor py-2 text-sm"
-                onClick={() => setShareUrlPendingCopy(null)}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

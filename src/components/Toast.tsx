@@ -31,9 +31,8 @@ export default function Toast({ message, isVisible, onClose, duration = 3000 }: 
         show ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
-      <div className="bg-black text-white px-6 py-4 rounded-2xl border-4 border-couplet-gold shadow-lg flex items-center gap-3">
-
-        <span className="font-bold text-lg">{message}</span>
+      <div className="bg-black text-white px-6 py-4 rounded-2xl border-4 border-couplet-gold shadow-lg flex items-center gap-3 max-w-[min(100vw-2rem,28rem)]">
+        <span className="font-bold text-lg break-all select-text">{message}</span>
       </div>
     </div>
   )
