@@ -64,15 +64,15 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     canvasRef.current?.clear()
   }
 
-  const renderToExportCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
+  const renderToExportCanvas = useCallback(async (options?: { maxDimension?: number }): Promise<HTMLCanvasElement> => {
     const bgImage = new Image()
     await new Promise<void>((resolve, reject) => {
       bgImage.onload = () => resolve()
       bgImage.onerror = reject
       bgImage.src = template.image
     })
-    // Use natural size or template fallback; cap for Safari/iOS (toDataURL fails on very large canvases)
-    const MAX_EXPORT_PX = 1200
+    // Cap size for Safari/iOS and for upload payload limits (smaller = smaller request body)
+    const MAX_EXPORT_PX = options?.maxDimension ?? 1200
     let exportW = bgImage.naturalWidth || template.exportWidth
     let exportH = bgImage.naturalHeight || template.exportHeight
     if (exportW <= 0 || exportH <= 0) {
@@ -163,20 +163,26 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     if (isSaving) return
     setIsSaving(true)
     try {
-      const exportCanvas = await renderToExportCanvas()
+      // Smaller export for upload to stay under body size limits (e.g. Vercel 4.5MB)
+      const exportCanvas = await renderToExportCanvas({ maxDimension: 800 })
       let imageData: string
       try {
-        imageData = exportCanvas.toDataURL('image/png')
+        // Prefer JPEG for upload (much smaller than PNG); fallback to PNG
+        try {
+          imageData = exportCanvas.toDataURL('image/jpeg', 0.88)
+          if (!imageData.startsWith('data:image/jpeg')) imageData = exportCanvas.toDataURL('image/png')
+        } catch {
+          imageData = exportCanvas.toDataURL('image/png')
+        }
       } catch (e) {
         console.error('toDataURL failed', e)
-        // Safari/iOS sometimes fails on the main canvas; try smaller export
         try {
           const small = document.createElement('canvas')
           small.width = Math.min(600, exportCanvas.width)
           small.height = Math.min(1200, exportCanvas.height)
           const sctx = small.getContext('2d')!
           sctx.drawImage(exportCanvas, 0, 0, small.width, small.height)
-          imageData = small.toDataURL('image/png')
+          imageData = small.toDataURL('image/jpeg', 0.88) || small.toDataURL('image/png')
         } catch (e2) {
           console.error('toDataURL fallback failed', e2)
           setToastMessage('Could not export image')
