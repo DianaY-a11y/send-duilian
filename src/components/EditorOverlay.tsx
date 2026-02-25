@@ -45,8 +45,36 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
   const [showToast, setShowToast] = useState(false)
   const [isAnimating, setIsAnimating] = useState(true)
   const [panelOpen, setPanelOpen] = useState(false)
+  const [shareUrlPendingCopy, setShareUrlPendingCopy] = useState<string | null>(null)
 
   const canvasRef = useRef<BrushCanvasRef>(null)
+
+  const copyToClipboard = useCallback((text: string): boolean => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+        return true
+      }
+    } catch {
+      // continue to fallback
+    }
+    try {
+      const el = document.createElement('textarea')
+      el.value = text
+      el.setAttribute('readonly', '')
+      el.style.position = 'fixed'
+      el.style.left = '-9999px'
+      el.style.top = '0'
+      document.body.appendChild(el)
+      el.select()
+      el.setSelectionRange(0, text.length)
+      const ok = document.execCommand('copy')
+      document.body.removeChild(el)
+      return ok
+    } catch {
+      return false
+    }
+  }, [])
 
   useEffect(() => {
     const timer = setTimeout(() => setIsAnimating(false), 500)
@@ -214,19 +242,16 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
       const { slug } = await response.json()
       const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/g/${slug}`
 
-      try {
-        await navigator.clipboard.writeText(shareUrl)
-      } catch {
-        const textarea = document.createElement('textarea')
-        textarea.value = shareUrl
-        document.body.appendChild(textarea)
-        textarea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textarea)
+      const copied = copyToClipboard(shareUrl)
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      if (copied && !isIOS) {
+        setToastMessage('Link copied!')
+        setShowToast(true)
+      } else {
+        setShareUrlPendingCopy(shareUrl)
+        setToastMessage('Tap Copy link below')
+        setShowToast(true)
       }
-
-      setToastMessage('Link copied!')
-      setShowToast(true)
     } catch (error) {
       console.error('Save error:', error)
       const message = error instanceof Error ? error.message : 'Something went wrong'
@@ -382,6 +407,44 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
         isVisible={showToast}
         onClose={() => setShowToast(false)}
       />
+
+      {shareUrlPendingCopy && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] max-w-[calc(100vw-2rem)] w-full max-w-md">
+          <div className="bg-white border-2 border-red-700 rounded-lg p-3 shadow-lg flex flex-col gap-2">
+            <label className="text-red-700 text-xs font-bold">Share link</label>
+            <input
+              type="text"
+              readOnly
+              value={shareUrlPendingCopy}
+              className="w-full px-3 py-2 border border-gray-300 rounded text-sm text-gray-800 bg-gray-50"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="btn-editor flex-1 py-2 text-sm"
+                onClick={() => {
+                  const ok = copyToClipboard(shareUrlPendingCopy)
+                  if (ok) {
+                    setToastMessage('Copied!')
+                    setShowToast(true)
+                    setTimeout(() => setShareUrlPendingCopy(null), 1500)
+                  }
+                }}
+              >
+                Copy link
+              </button>
+              <button
+                type="button"
+                className="btn-editor py-2 text-sm"
+                onClick={() => setShareUrlPendingCopy(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
