@@ -66,19 +66,30 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
 
   const renderToExportCanvas = useCallback(async (): Promise<HTMLCanvasElement> => {
     const bgImage = new Image()
-    // Don't set crossOrigin for same-origin templates; Safari/iOS can taint the canvas otherwise
     await new Promise<void>((resolve, reject) => {
       bgImage.onload = () => resolve()
       bgImage.onerror = reject
       bgImage.src = template.image
     })
-    const exportW = bgImage.naturalWidth
-    const exportH = bgImage.naturalHeight
+    // Use natural size or template fallback; cap for Safari/iOS (toDataURL fails on very large canvases)
+    const MAX_EXPORT_PX = 1200
+    let exportW = bgImage.naturalWidth || template.exportWidth
+    let exportH = bgImage.naturalHeight || template.exportHeight
+    if (exportW <= 0 || exportH <= 0) {
+      exportW = template.exportWidth
+      exportH = template.exportHeight
+    }
+    const maxSide = Math.max(exportW, exportH)
+    if (maxSide > MAX_EXPORT_PX) {
+      const scale = MAX_EXPORT_PX / maxSide
+      exportW = Math.round(exportW * scale)
+      exportH = Math.round(exportH * scale)
+    }
     const exportCanvas = document.createElement('canvas')
     exportCanvas.width = exportW
     exportCanvas.height = exportH
     const ctx = exportCanvas.getContext('2d')!
-    ctx.drawImage(bgImage, 0, 0)
+    ctx.drawImage(bgImage, 0, 0, exportW, exportH)
     const wa = template.writingArea
     const waX = wa.x * exportW
     const waY = wa.y * exportH
@@ -153,15 +164,25 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
     setIsSaving(true)
     try {
       const exportCanvas = await renderToExportCanvas()
-      // Use PNG for upload: best Safari/iOS support; WebP can fail or taint on iPad
       let imageData: string
       try {
         imageData = exportCanvas.toDataURL('image/png')
       } catch (e) {
         console.error('toDataURL failed', e)
-        setToastMessage('Could not export image')
-        setShowToast(true)
-        return
+        // Safari/iOS sometimes fails on the main canvas; try smaller export
+        try {
+          const small = document.createElement('canvas')
+          small.width = Math.min(600, exportCanvas.width)
+          small.height = Math.min(1200, exportCanvas.height)
+          const sctx = small.getContext('2d')!
+          sctx.drawImage(exportCanvas, 0, 0, small.width, small.height)
+          imageData = small.toDataURL('image/png')
+        } catch (e2) {
+          console.error('toDataURL fallback failed', e2)
+          setToastMessage('Could not export image')
+          setShowToast(true)
+          return
+        }
       }
       if (!imageData || !imageData.startsWith('data:image/')) {
         setToastMessage('Could not export image')
