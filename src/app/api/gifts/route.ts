@@ -65,10 +65,10 @@ export async function POST(request: NextRequest) {
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
-      const msg = String(uploadError.message || '')
+      const msg = String(uploadError?.message ?? 'Unknown error')
       const hint = /size|length|limit|quota|large/i.test(msg)
         ? 'Image may be too large. Try again.'
-        : 'Failed to upload image.'
+        : `Upload failed: ${msg}`
       return NextResponse.json(
         { error: hint },
         { status: 500 }
