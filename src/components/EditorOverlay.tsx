@@ -243,7 +243,10 @@ export default function EditorOverlay({ template, onClose }: EditorOverlayProps)
       const shareUrl = `${process.env.NEXT_PUBLIC_BASE_URL || window.location.origin}/g/${slug}`
 
       const copied = copyToClipboard(shareUrl)
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+      // iPadOS 13+ often reports Mac user agent; detect iPad by touch + platform
+      const isIOS =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
       if (copied && !isIOS) {
         setToastMessage('Link copied!')
         setShowToast(true)
