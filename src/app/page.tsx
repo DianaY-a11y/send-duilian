@@ -27,30 +27,30 @@ export default function Home() {
           <p className="text-white/90 text-sm font-medium mb-3">See some couplets others have written ~</p>
           <div className="flex flex-wrap justify-center gap-3">
             <a
-              href="/g/740GMvReMo1u"
+              href="/g/IOoj3abVcsX7"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl overflow-hidden ring-2 ring-transparent focus:outline-none"
+              className="rounded-xl ring-2 ring-transparent focus:outline-none"
               aria-label="Open example 1 in a new tab"
             >
               <img
-                src="/templates/1.png"
+                src="/components/example1.png"
                 alt="Example 1 preview"
-                className="w-36 h-36 object-cover block"
+                className="w-44 h-44 object-contain block"
               />
             </a>
 
             <a
-              href="/g/vVHE7IKbyoVG"
+              href="/g/0lHW1a3Jf4iA"
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-xl overflow-hidden ring-2 ring-transparent focus:outline-none"
+              className="rounded-xl ring-2 ring-transparent focus:outline-none"
               aria-label="Open example 2 in a new tab"
             >
               <img
-                src="/templates/2.png"
+                src="/components/example2.png"
                 alt="Example 2 preview"
-                className="w-36 h-36 object-cover block"
+                className="w-44 h-44 object-contain block"
               />
             </a>
           </div>
